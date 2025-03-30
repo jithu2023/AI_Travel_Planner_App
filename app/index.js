@@ -1,10 +1,18 @@
 import { View, Text } from 'react-native';
-import Login from '../components/Login'
+import Login from '../components/Login';
+import { auth } from '../configs/FirebaseConfig';
+import { Redirect } from 'expo-router';
 
-export default function HomeScreen() {
+ const user=auth.currentUser;
+
+export default function Index() {
   return (
     <View style={{ flex: 1 }}>
-      <Login/>
+      {user ? (
+        <Redirect href={"/mytrip"} />
+      ) : (
+        <Login />
+      )}
     </View>
   );
 }
