@@ -29,7 +29,7 @@ export default function SignIn() {
 
         try {
             await signInWithEmailAndPassword(auth, email.trim(), password);
-            router.replace('/');
+            router.replace('/mytrip');
         } catch (error) {
             handleAuthError(error);
         } finally {
