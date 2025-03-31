@@ -1,8 +1,9 @@
 import { View, Platform, StyleSheet } from 'react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useContext } from 'react';
 import { useNavigation } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import { CreateTripContext } from '../../context/CreateTripContext';
 
 const isValidApiKey = (key) => key && key.startsWith('AIza') && key.length > 30;
 
@@ -11,6 +12,7 @@ export default function SearchPlace() {
   const [WebAutocomplete, setWebAutocomplete] = useState(() => () => null);
   const [apiError, setApiError] = useState(null);
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAP_KEY;
+  const { setTripData } = useContext(CreateTripContext);
 
   useEffect(() => {
     navigation.setOptions({
@@ -47,24 +49,31 @@ export default function SearchPlace() {
                     onPlaceChanged={() => {
                       const place = autocompleteRef.current?.getPlace();
                       if (place) {
-                        console.group('WEB - Place Selection Data');
-                        console.log('Description:', place.formatted_address);
-                        console.log('Location:', place.geometry?.location);
-                        console.log('Photo Reference:', place.photos?.[0]?.photo_reference);
-                        console.log('Place URL:', place.url);
-                        console.log('Full Place Object:', place);
-                        console.groupEnd();
-                        
-                        onPlaceSelected({
-                          description: place.formatted_address,
-                          place_id: place.place_id,
-                          geometry: place.geometry,
-                          name: place.name,
-                          photos: place.photos,
-                          url: place.url,
-                          address_components: place.address_components,
+                        const locationInfo = {
+                          name: place.name || place.formatted_address,
+                          address: place.formatted_address,
+                          placeId: place.place_id,
+                          coordinates: {
+                            lat: place.geometry?.location?.lat(),
+                            lng: place.geometry?.location?.lng()
+                          },
+                          viewport: {
+                            northeast: {
+                              lat: place.geometry?.viewport?.getNorthEast()?.lat(),
+                              lng: place.geometry?.viewport?.getNorthEast()?.lng()
+                            },
+                            southwest: {
+                              lat: place.geometry?.viewport?.getSouthWest()?.lat(),
+                              lng: place.geometry?.viewport?.getSouthWest()?.lng()
+                            }
+                          },
+                          photoReference: place.photos?.[0]?.photo_reference || null,
+                          placeUrl: place.url || `https://www.google.com/maps/place/?q=place_id:${place.place_id}`,
+                          addressComponents: place.address_components,
                           types: place.types
-                        }, place); // Passing full details as second parameter
+                        };
+                        console.log('WEB - Place Data:', locationInfo);
+                        onPlaceSelected(locationInfo);
                       }
                     }}
                   >
@@ -97,29 +106,38 @@ export default function SearchPlace() {
     }
   }, [apiKey]);
 
-  const handlePlaceSelected = (data, details = null) => {
-    console.group('SELECTED PLACE DETAILS');
-    console.log('Basic Information:');
-    console.log('- Description:', data.description);
-    console.log('- Name:', data.name);
-    console.log('- Place ID:', data.place_id);
+  const handlePlaceSelected = (locationInfo) => {
+    console.log('Final Location Info:', locationInfo);
     
-    console.log('\nLocation Data:');
-    console.log('- Coordinates:', details?.geometry?.location);
-    console.log('- Viewport:', details?.geometry?.viewport);
-    
-    console.log('\nMedia References:');
-    console.log('- Primary Photo Reference:', details?.photos?.[0]?.photo_reference);
-    console.log('- All Photos:', details?.photos);
-    console.log('- Place URL:', details?.url);
-    
-    console.log('\nAdditional Details:');
-    console.log('- Address Components:', details?.address_components);
-    console.log('- Place Types:', details?.types);
-    console.groupEnd();
+    setTripData(prevData => ({
+      ...prevData,
+      locationInfo: {
+        ...locationInfo,
+        // Ensure coordinates are plain objects
+        coordinates: locationInfo.coordinates ? {
+          lat: locationInfo.coordinates.lat,
+          lng: locationInfo.coordinates.lng
+        } : null,
+        // Ensure viewport is plain object
+        viewport: locationInfo.viewport ? {
+          northeast: {
+            lat: locationInfo.viewport.northeast?.lat,
+            lng: locationInfo.viewport.northeast?.lng
+          },
+          southwest: {
+            lat: locationInfo.viewport.southwest?.lat,
+            lng: locationInfo.viewport.southwest?.lng
+          }
+        } : null
+      }
+    }));
 
-    // You can use this data for navigation or state updates
-    // navigation.navigate('Map', { location: details?.geometry?.location });
+    // Navigate after setting data
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('(tabs)');
+    }
   };
 
   if (apiError) {
@@ -148,15 +166,20 @@ export default function SearchPlace() {
         <GooglePlacesAutocomplete
           placeholder="Search"
           onPress={(data, details = null) => {
-            console.group('NATIVE - Place Selection Data');
-            console.log('Description:', data.description);
-            console.log('Location:', details?.geometry?.location);
-            console.log('Photo Reference:', details?.photos?.[0]?.photo_reference);
-            console.log('Place URL:', details?.url);
-            console.log('Full Details:', details);
-            console.groupEnd();
-            
-            handlePlaceSelected(data, details);
+            const locationInfo = {
+              name: data.description,
+              address: data.description,
+              placeId: data.place_id,
+              coordinates: details?.geometry?.location,
+              viewport: details?.geometry?.viewport,
+              photoReference: locationInfo.photos?.[0]?.photo_reference || null,
+              photoUrl,
+              placeUrl: details?.url || `https://www.google.com/maps/place/?q=place_id:${data.place_id}`,
+              addressComponents: details?.address_components,
+              types: details?.types
+            };
+            console.log('NATIVE - Place Data:', locationInfo);
+            handlePlaceSelected(locationInfo);
           }}
           query={{
             key: apiKey,
@@ -176,11 +199,29 @@ export default function SearchPlace() {
             'locality',
             'administrative_area_level_3'
           ]}
+          // Enable photos in the response
+          requestUrl={{
+            url: 'https://maps.googleapis.com/maps/api/place',
+            params: {
+              fields: [
+                'formatted_address',
+                'geometry',
+                'name',
+                'place_id',
+                'photos',
+                'url',
+                'address_components',
+                'types'
+              ].join(',')
+            }
+          }}
         />
       )}
     </View>
   );
 }
+
+// ... (styles remain the same)
 
 const styles = StyleSheet.create({
   container: {
