@@ -10,7 +10,7 @@ export default function MyTrip() {
   return (
     <View style={{
         padding:25,
-        paddingTop:55,
+        paddingTop:35,
         backgroundColor:Colors.WHITE,
         height:'100%'
 

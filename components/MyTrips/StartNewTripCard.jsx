@@ -6,11 +6,13 @@ import { useRouter } from 'expo-router';
 
 export default function StartNewTripCard() {
     const router=useRouter()
+
+    
   return (
     <View
     style={{
         padding:20,
-        marginTop:50,
+        marginTop:40,
         display:'flex',
         alignItems:'center',
         gap:25
