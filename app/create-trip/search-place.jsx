@@ -1,6 +1,6 @@
 import { View, Platform, StyleSheet } from 'react-native';
 import React, { useEffect, useRef, useState, useContext } from 'react';
-import { useNavigation } from 'expo-router';
+import { useNavigation ,useRouter} from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { CreateTripContext } from '../../context/CreateTripContext';
@@ -13,6 +13,7 @@ export default function SearchPlace() {
   const [apiError, setApiError] = useState(null);
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAP_KEY;
   const { setTripData } = useContext(CreateTripContext);
+  const router=useRouter()
 
   useEffect(() => {
     navigation.setOptions({
@@ -131,13 +132,9 @@ export default function SearchPlace() {
         } : null
       }
     }));
-
+  
     // Navigate after setting data
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate('(tabs)');
-    }
+    router.push('/create-trip/select-traveler')
   };
 
   if (apiError) {
@@ -160,64 +157,68 @@ export default function SearchPlace() {
 
   return (
     <View style={styles.container}>
-      {Platform.OS === 'web' ? (
-        <WebAutocomplete onPlaceSelected={handlePlaceSelected} />
-      ) : (
-        <GooglePlacesAutocomplete
-          placeholder="Search"
-          onPress={(data, details = null) => {
-            const locationInfo = {
-              name: data.description,
-              address: data.description,
-              placeId: data.place_id,
-              coordinates: details?.geometry?.location,
-              viewport: details?.geometry?.viewport,
-              photoReference: locationInfo.photos?.[0]?.photo_reference || null,
-              photoUrl,
-              placeUrl: details?.url || `https://www.google.com/maps/place/?q=place_id:${data.place_id}`,
-              addressComponents: details?.address_components,
-              types: details?.types
-            };
-            console.log('NATIVE - Place Data:', locationInfo);
-            handlePlaceSelected(locationInfo);
-          }}
-          query={{
-            key: apiKey,
-            language: 'en',
-          }}
-          styles={{
-            textInput: styles.nativeInput,
-            container: styles.autocompleteContainer,
-          }}
-          fetchDetails={true}
-          enablePoweredByContainer={false}
-          debounce={300}
-          listViewDisplayed="auto"
-          minLength={2}
-          nearbyPlacesAPI="GooglePlacesSearch"
-          filterReverseGeocodingByTypes={[
-            'locality',
-            'administrative_area_level_3'
-          ]}
-          // Enable photos in the response
-          requestUrl={{
-            url: 'https://maps.googleapis.com/maps/api/place',
-            params: {
-              fields: [
-                'formatted_address',
-                'geometry',
-                'name',
-                'place_id',
-                'photos',
-                'url',
-                'address_components',
-                'types'
-              ].join(',')
-            }
-          }}
-        />
-      )}
-    </View>
+    {Platform.OS === 'web' ? (
+      <WebAutocomplete onPlaceSelected={handlePlaceSelected} />
+    ) : (
+      <GooglePlacesAutocomplete
+        placeholder="Search"
+        onPress={(data, details = null) => {
+          const photoReference = details?.photos?.[0]?.photo_reference;
+          const photoUrl = photoReference 
+            ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=${apiKey}`
+            : null;
+  
+          const locationInfo = {
+            name: details?.name || data.description,
+            address: details?.formatted_address || data.description,
+            placeId: data.place_id,
+            coordinates: details?.geometry?.location,
+            viewport: details?.geometry?.viewport,
+            photoReference: photoReference,
+            photoUrl: photoUrl,
+            placeUrl: details?.url || `https://www.google.com/maps/place/?q=place_id:${data.place_id}`,
+            addressComponents: details?.address_components,
+            types: details?.types
+          };
+          console.log('NATIVE - Place Data:', locationInfo);
+          handlePlaceSelected(locationInfo);
+        }}
+        query={{
+          key: apiKey,
+          language: 'en',
+        }}
+        styles={{
+          textInput: styles.nativeInput,
+          container: styles.autocompleteContainer,
+        }}
+        fetchDetails={true}
+        enablePoweredByContainer={false}
+        debounce={300}
+        listViewDisplayed="auto"
+        minLength={2}
+        nearbyPlacesAPI="GooglePlacesSearch"
+        filterReverseGeocodingByTypes={[
+          'locality',
+          'administrative_area_level_3'
+        ]}
+        requestUrl={{
+          url: 'https://maps.googleapis.com/maps/api/place',
+          params: {
+            fields: [
+              'formatted_address',
+              'geometry',
+              'name',
+              'place_id',
+              'photos',
+              'url',
+              'address_components',
+              'types'
+            ].join(',')
+          }
+        }}
+      />
+    )}
+  </View>
   );
 }
 
