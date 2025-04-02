@@ -1,6 +1,6 @@
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import React, { useContext, useState, useEffect } from 'react';
-import { useNavigation } from 'expo-router';
+import { useNavigation,useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { SelectTravelersList } from '../../constants/options';
 import OptionCard from '../../components/createTrip/optionCard';
@@ -17,6 +17,8 @@ export default function SelectTraveler() {
   const navigation = useNavigation();
   const [selectedTraveler, setSelectedTraveler] = useState(null);
   const { tripData, setTripData } = useContext(CreateTripContext);
+    const router=useRouter()
+  
 
   const handleSelectTraveler = (item) => {
     setSelectedTraveler(item);
@@ -47,7 +49,7 @@ export default function SelectTraveler() {
       travelerInfo: travelerData
     });
 
-    navigation.navigate('next-screen');
+    router.push('/create-trip/select-dates')
   };
 
   return (
