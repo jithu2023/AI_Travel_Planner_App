@@ -1,13 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import React, { useContext } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { CreateTripContext } from '../../context/CreateTripContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import moment from 'moment';
 
 export default function ReviewTrip() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const { tripData } = useContext(CreateTripContext);
 
   const formatDate = (dateString) => {
@@ -16,7 +16,11 @@ export default function ReviewTrip() {
 
   const handleGenerateTrip = () => {
     console.log("Generating trip with data:", tripData);
-    // navigation.navigate('GeneratedTrip');
+    router.push('/create-trip/generate-trip'); // Update this path to your actual generated trip screen
+  };
+
+  const handleGoBack = () => {
+    router.back();
   };
 
   return (
@@ -24,7 +28,7 @@ export default function ReviewTrip() {
       {/* Header with Back Button */}
       <View style={styles.header}>
         <TouchableOpacity 
-          onPress={() => navigation.goBack()}
+          onPress={handleGoBack}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={Colors.PRIMARY} />
@@ -93,35 +97,35 @@ export default function ReviewTrip() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 15,
     backgroundColor: Colors.WHITE,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
-    marginTop: 10,
+    marginTop:5,
   },
   backButton: {
     marginRight: 15,
   },
   title: {
     fontFamily: 'outfit-bold',
-    fontSize: 28,
+    fontSize: 26,
     color: Colors.DARK,
   },
   subtitle: {
     fontFamily: 'outfit-regular',
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.GRAY,
-    marginBottom: 25,
+    marginBottom: 20,
     lineHeight: 22,
   },
   card: {
     backgroundColor: Colors.WHITE,
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    padding: 15,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -131,7 +135,7 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   detailsBg: {
     backgroundColor: Colors.LIGHT_GRAY,
