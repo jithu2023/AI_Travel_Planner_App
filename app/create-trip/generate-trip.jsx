@@ -70,66 +70,34 @@ import {
       }
     };
   
-    const saveTripToFirebase = async (tripResponse) => {
-      try {
-        if (!user) {
-          throw new Error('User not authenticated');
-        }
-  
-        const docId = Date.now().toString();
-        const tripToSave = {
-          userEmail: user.email,
-          userId: user.uid,
-          createdAt: new Date().toISOString(),
-          status: 'active',
-          ...tripResponse.travelPlan,
-          originalData: tripResponse,
-          contextTripData: contextTripData // Save the original trip data for reference
-        };
-  
-        // Standardize data structure before saving
-        if (tripToSave.hotels) {
-          tripToSave.hotels = tripToSave.hotels.map(hotel => ({
-            name: hotel.name,
-            address: hotel.address,
-            price: hotel.pricePerNight || hotel.price,
-            imageURL: hotel.imageURL || hotel.imageUrl,
-            coordinates: hotel.coordinates,
-            rating: hotel.rating,
-            description: hotel.description
-          }));
-        }
-  
-        if (tripToSave.attractions) {
-          tripToSave.attractions = tripToSave.attractions.map(attraction => ({
-            name: attraction.name,
-            details: attraction.details,
-            imageURL: attraction.imageURL || attraction.imageUrl,
-            coordinates: attraction.coordinates,
-            ticketPrice: attraction.ticketPrice,
-            bestVisitTime: attraction.bestVisitTime
-          }));
-        }
-  
-        if (tripToSave.flights) {
-          tripToSave.flights = tripToSave.flights.map(flight => ({
-            airline: flight.airline,
-            price: flight.price,
-            bookingURL: flight.bookingURL || flight.bookingUrl,
-            departure: flight.departureTime || flight.departure,
-            arrival: flight.arrivalTime || flight.arrival,
-            departureAirport: flight.departureAirport,
-            arrivalAirport: flight.arrivalAirport
-          }));
-        }
-  
-        await setDoc(doc(db, "UserTrips", docId), tripToSave);
-        return docId;
-      } catch (error) {
-        console.error("Error saving trip to Firebase:", error);
-        throw new Error('Failed to save trip: ' + error.message);
-      }
+ // In GenerateTrip.jsx - Update the saveTripToFirebase function
+const saveTripToFirebase = async (tripResponse) => {
+  try {
+    if (!user) throw new Error('User not authenticated');
+
+    const docId = Date.now().toString();
+    const tripToSave = {
+      userEmail: user.email,
+      userId: user.uid,
+      createdAt: serverTimestamp(), // Use Firestore server timestamp
+      status: 'active',
+      ...tripResponse.travelPlan,
+      originalData: tripResponse,
+      contextTripData: contextTripData
     };
+
+    // Add data validation
+    if (!tripToSave.location || !tripToSave.duration) {
+      throw new Error('Invalid trip data structure');
+    }
+
+    await setDoc(doc(db, "UserTrips", docId), tripToSave);
+    return docId;
+  } catch (error) {
+    console.error("Firestore save error:", error);
+    throw new Error('Failed to save trip: ' + error.message);
+  }
+};
   
     const generateAiTrip = async () => {
       if (lastRequestTime.current && Date.now() - lastRequestTime.current < 5000) {
